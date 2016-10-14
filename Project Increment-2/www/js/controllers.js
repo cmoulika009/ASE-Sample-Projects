@@ -1,6 +1,6 @@
 angular.module('app.controllers', ['firebase'])
 
-  .controller('loginCtrl', function ($scope, $firebaseAuth, $rootScope, $ionicHistory, sharedUtils, $state, $ionicSideMenuDelegate) {
+  .controller('loginCtrl', function ($scope, $firebaseAuth, $rootScope, $ionicHistory, sharedUtils, $state, $ionicSideMenuDelegate, $cordovaOauth,$http) {
     $rootScope.extras = false;  // For hiding the side bar and nav icon
 
     // When the user logs out and reaches login page,
@@ -27,41 +27,7 @@ angular.module('app.controllers', ['firebase'])
       }
     });
 
-    $scope.oauthLogin = function (provider) {
-      if (provider == 'facebook') {
-        Auth.loginWithFacebook()
-          .then(function (authData) {
-            $rootScope.clog('oauthLogin');
-          })
-          .catch(function (error) {
-            $rootScope.clog('Oops something went wrong. Please try again later');
-            console.dir(error);
-          });
-      }
-      else if (provider == 'google') {
-        Auth.loginWithGoogle()
-          .then(function (authData) {
-            $rootScope.clog('oauthLogin');
-          })
-          .catch(function (error) {
-            $rootScope.clog('Oops something went wrong. Please try again later');
-            $rootScope.clog(error);
-          });
-      }
-      else if (provider == 'twitter') {
-        Auth.loginWithTwitter()
-          .then(function (authData) {
-            $rootScope.clog('oauthLogin');
-          })
-          .catch(function (error) {
-            $rootScope.clog('Oops something went wrong. Please try again later');
-            $rootScope.clog(error);
-          });
-      }
-      else {
-        $rootScope.hideLoading();
-      }
-    };
+
 
     $scope.loginEmail = function (formName, cred) {
       if (formName.$valid) {  // Check if the form data is valid or not
@@ -96,10 +62,46 @@ angular.module('app.controllers', ['firebase'])
       )
     };
 
-    $scope.loginGmail = function () {
-      //Gmail Login
-    };
-  })
+    $scope.LoginGoogle = function(){
+      $cordovaOauth.google("868365513982-jpddd0qmui68otu80663ii4jpc7g9hkf.apps.googleusercontent.com",
+        ["https://www.googleapis.com/auth/urlshortener", "https://www.googleapis.com/auth/userinfo.email"])
+        .then(function(result) {
+        // alert("Auth Success..!!"+result);
+        console.log(JSON.stringify(result));
+        $scope.showProfile = false;
+
+        $http.get("https://www.googleapis.com/plus/v1/people/me", {
+            params: {
+              access_token: result.access_token
+            }
+          })
+          .then(function(res) {
+            $scope.showProfile = true;
+            $scope.details = res.data; //
+            console.log($scope.details);// success callback
+            $scope.displayName= $scope.details.displayName;
+            console.log($scope.displayName);
+            $scope.photoURL=$scope.details.image.url;
+            console.log($scope.pimage);
+
+            $ionicSideMenuDelegate.canDragContent(true);  // Sets up the sideMenu dragable
+            $rootScope.extras = true;
+            sharedUtils.hideLoading();
+            $state.go('menu2', {}, {location: "replace"});
+
+          }, function(error) {
+            alert("Error: " + error);
+          });
+
+         }, function(error) {
+           alert("Auth Failed..!!" + error);
+         });
+
+        };
+      })
+
+
+
 
   .controller('signupCtrl', function ($scope, $rootScope, sharedUtils, $ionicSideMenuDelegate,
                                       $state, fireBaseData, $ionicHistory) {
@@ -431,3 +433,4 @@ angular.module('app.controllers', ['firebase'])
   .controller('forgotPasswordCtrl', function ($scope, $rootScope) {
     $rootScope.extras = false;
   })
+
